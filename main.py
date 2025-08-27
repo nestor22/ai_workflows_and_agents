@@ -1,48 +1,61 @@
-
-import os 
-
-import requests
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
 
-OPEN_AI_KEY= os.getenv("OPENAI_API_KEY")
+client = OpenAI()
 
-def generate_x_post(usr_inpt: str) -> str:
-    # call ai /llm 
-    promt= f"""
-    you are a expert social media manager, and you excel at crafting viral and highly engaging post for X(formerly twitter).
-    you task is a post that is consice, engaging, and has a high potential for virality.
-    avoid using hashtags, and lots of emojis(a few emojis are okay, but not too many).
-    keep the post sort and focused, structure it in a clean, redeable way, using line breaks and empty lines to enhace redability.
-    here is the topic privded by the user for which you need to generate a post:
-    <topic>
-    {usr_inpt}
-    </topic>
+def get_temperature():
     """
-    payload= {
-        "model": "gpt-5-mini",
-        "input": promt
-    }
-    response = requests.post(
-        "https://api.openai.com/v1/responses", 
-        json=payload, 
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {OPEN_AI_KEY}"
-        })
-    
-    response_text=response.json().get("output",[{}])[1].get("content",[{}])[0].get("text","")
-    return response_text
+    get the curren temperature for a given city
+    """
+    return 20.0
+
+
 
 
 def main():
-    # user input => AI (LLM) to generate a X post
-    
-    user_input= input("what should the post be about?")
-    x_post=generate_x_post(user_input)
-    print(x_post)
-    
+    user_input = input("your question: ")
+    promt= f""" 
+    your are a helpful assistan. answwer the user's question in a friendly way.
+
+    you can also use tools if you feel like they help you provide a better answer:
+    - get_temperature(city: str): -> float: get the current temperature for a given city
+
+    if you want to use ona of these tools, you should output the tool name and its arguments in the follosing format:
+    tool_name: arg1, arg2, ...
+    for example:
+    get_temperature: London
+    whnitch that in mind, answer the user's question: 
+    <user-question>
+    {user_input}
+    </user-question>
+    """
+    responses = client.responses.create(
+        model="gpt-5-mini",
+        input=promt
+    )
+    reply = responses.output_text
+    if reply.startswith("get_temperature:"):
+        arg= reply.splait(":")[1].strip()
+        temperature = get_temperature(arg)
+        promt= f"""
+        you are a helpful assistant. answer the user's question in a friendly way.
+        here's the user's question : 
+        <user-question>
+        {user_input}
+        </user-question>
+        you requeste to user  the get_temperature tool with the following argument: {arg}
+        """
+        responses = client.responses.create(
+            model="gpt-5-mini",
+            input=promt
+        )
+        reply = responses.output_text
+        print(reply)
+    else: 
+        print(reply)
+    return reply
 
 if __name__ == "__main__":
     main()

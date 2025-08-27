@@ -1,17 +1,12 @@
 
-import os
-from openai import OpenAI
+import os 
 
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = OpenAI(
-    # base_url="localhost:8000/v1",  # Uncomment this line to use a local server
-    api_key=os.getenv("OPENAI_API_KEY"),
-
-)
-
+OPEN_AI_KEY= os.getenv("OPENAI_API_KEY")
 
 def generate_x_post(usr_inpt: str) -> str:
     # call ai /llm 
@@ -25,11 +20,20 @@ def generate_x_post(usr_inpt: str) -> str:
     {usr_inpt}
     </topic>
     """
-    response = client.responses.create(
-        model="gpt-5-mini",
-        input=promt
-    )
-    return response.output_text
+    payload= {
+        "model": "gpt-5-mini",
+        "input": promt
+    }
+    response = requests.post(
+        "https://api.openai.com/v1/responses", 
+        json=payload, 
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {OPEN_AI_KEY}"
+        })
+    
+    response_text=response.json().get("output",[{}])[1].get("content",[{}])[0].get("text","")
+    return response_text
 
 
 def main():
